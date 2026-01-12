@@ -1,34 +1,50 @@
 const simpleOauthModule = require('simple-oauth2')
 const authMiddleWareInit = require('./auth.js')
 const callbackMiddleWareInit = require('./callback')
-const oauthProvider = process.env.OAUTH_PROVIDER || 'github'
-const loginAuthTarget = process.env.AUTH_TARGET || '_self'
 
-const config = {
-  client: {
-    id: process.env.OAUTH_CLIENT_ID,
-    secret: process.env.OAUTH_CLIENT_SECRET
-  },
-  auth: {
-    // Supply GIT_HOSTNAME for enterprise github installs.
-    tokenHost: process.env.GIT_HOSTNAME || 'https://github.com',
-    tokenPath: process.env.OAUTH_TOKEN_PATH || '/login/oauth/access_token',
-    authorizePath: process.env.OAUTH_AUTHORIZE_PATH || '/login/oauth/authorize'
+module.exports = (config) => {
+  // Default values
+  const oauthProvider = config.provider || 'github'
+  const loginAuthTarget = config.authTarget || '_self'
+  const origins = config.origins
+
+  const oauthConfig = {
+    client: {
+      id: config.clientId,
+      secret: config.clientSecret
+    },
+    auth: {
+      tokenHost: config.tokenHost || 'https://github.com',
+      tokenPath: config.tokenPath || '/login/oauth/access_token',
+      authorizePath: config.authorizePath || '/login/oauth/authorize'
+    }
   }
-}
 
-const oauth2 = new simpleOauthModule.AuthorizationCode(config)
+  const oauth2 = new simpleOauthModule.AuthorizationCode(oauthConfig)
 
-function indexMiddleWare (req, res) {
-  res.send(`Hello<br>
-    <a href="/auth" target="${loginAuthTarget}">
-      Log in with ${oauthProvider.toUpperCase()}
-    </a>`)
-}
+  // Pass configuration to factories
+  // callback.js expects: provider, client, redirect_uri, origins
+  // auth.js expects: redirect_uri, scopes
 
-module.exports = {
-  auth: authMiddleWareInit(oauth2),
-  callback: callbackMiddleWareInit(oauth2, oauthProvider),
-  success: (req, res) => { res.send('') },
-  index: indexMiddleWare
+  const middlewareConfig = {
+    provider: oauthProvider,
+    client: oauthConfig.client,
+    redirect_uri: config.redirectUri,
+    origins: origins,
+    scopes: config.scopes
+  }
+
+  function indexMiddleWare (req, res) {
+    res.send(`Hello<br>
+      <a href="/auth" target="${loginAuthTarget}">
+        Log in with ${oauthProvider.toUpperCase()}
+      </a>`)
+  }
+
+  return {
+    auth: authMiddleWareInit(oauth2, middlewareConfig),
+    callback: callbackMiddleWareInit(oauth2, middlewareConfig),
+    success: (req, res) => { res.send('') },
+    index: indexMiddleWare
+  }
 }

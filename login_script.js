@@ -1,14 +1,20 @@
 const REQUIRED_ORIGIN_PATTERN = 
   /^((\*|([\w_-]{2,}))\.)*(([\w_-]{2,})\.)+(\w{2,})(\,((\*|([\w_-]{2,}))\.)*(([\w_-]{2,})\.)+(\w{2,}))*$/
 
-if (!process.env.ORIGINS.match(REQUIRED_ORIGIN_PATTERN)) {
-  throw new Error('process.env.ORIGINS MUST be comma separated list \
-    of origins that login can succeed on.')
-}
-const origins = process.env.ORIGINS.split(',')
+module.exports = (oauthProvider, message, content, originsInput) => {
+  let origins;
+  if (typeof originsInput === 'string') {
+    if (!originsInput.match(REQUIRED_ORIGIN_PATTERN)) {
+      throw new Error('origins MUST be comma separated list of origins that login can succeed on.')
+    }
+    origins = originsInput.split(',');
+  } else if (Array.isArray(originsInput)) {
+    origins = originsInput;
+  } else {
+    throw new Error('origins must be a string or an array of strings');
+  }
 
-
-module.exports = (oauthProvider, message, content) => `
+  return `
 <script>
 (function() {
   function contains(arr, elem) {
@@ -45,3 +51,4 @@ module.exports = (oauthProvider, message, content) => `
   window.opener.postMessage("authorizing:${oauthProvider}", "*")
 })()
 </script>`
+}
