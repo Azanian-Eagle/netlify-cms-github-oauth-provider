@@ -1,17 +1,19 @@
 const generateScript = require('./login_script.js')
 
-module.exports = (oauth2, oauthProvider) => {
+module.exports = (oauth2, config) => {
+  const { provider, client, redirect_uri, origins } = config
+
   function callbackMiddleWare (req, res, next) {
     const code = req.query.code
     var options = {
       code: code
     }
 
-    if (oauthProvider === 'gitlab') {
-      options.client_id = process.env.OAUTH_CLIENT_ID
-      options.client_secret = process.env.OAUTH_CLIENT_SECRET
+    if (provider === 'gitlab') {
+      options.client_id = client.id
+      options.client_secret = client.secret
       options.grant_type = 'authorization_code'
-      options.redirect_uri = process.env.REDIRECT_URL
+      options.redirect_uri = redirect_uri
     }
 
     oauth2.getToken(options)
@@ -19,7 +21,7 @@ module.exports = (oauth2, oauthProvider) => {
         const token = oauth2.createToken(result)
         content = {
           token: token.token.token.access_token,
-          provider: oauthProvider
+          provider: provider
         }
         return { message: 'success', content }
       })
@@ -28,7 +30,7 @@ module.exports = (oauth2, oauthProvider) => {
         return { message: 'error', content: JSON.stringify(error) }
       })
       .then(result => {
-        const script = generateScript(oauthProvider, result.message, result.content)
+        const script = generateScript(provider, result.message, result.content, origins)
         return res.send(script)
       })
   }

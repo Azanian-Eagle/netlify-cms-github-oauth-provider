@@ -1,10 +1,10 @@
 const randomstring = require('randomstring')
 
-module.exports = (oauth2) => {
+module.exports = (oauth2, config) => {
   // Authorization uri definition
   const authorizationUri = oauth2.authorizeURL({
-    redirectURI: process.env.REDIRECT_URL,
-    scope: process.env.SCOPES || 'repo,user',
+    redirectURI: config.redirect_uri,
+    scope: config.scopes || 'repo,user',
     state: randomstring.generate(32)
   })
 
